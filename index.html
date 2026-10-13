@@ -162,10 +162,19 @@ body:not(.ads-on) .adslot{display:none!important}
  #tray{padding-top:4px}
  #recPill{top:calc(env(safe-area-inset-top,0px) + 60px)}#banner{top:calc(env(safe-area-inset-top,0px) + 60px)}
 }
+#boot{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:linear-gradient(180deg,#5ec8ff,#a8e6ff 60%,#ffe3a8);color:#fff;transition:opacity .35s;pointer-events:none}
+#boot.done{opacity:0}
+#boot .bl{font-size:48px;-webkit-text-stroke:3px #2b1458;paint-order:stroke fill;text-shadow:0 5px 0 #2b1458;color:#ffd23f}
+#boot .bb{width:220px;height:16px;border-radius:10px;background:rgba(43,20,88,.3);overflow:hidden}
+#boot .bb i{display:block;height:100%;width:0;border-radius:10px;background:linear-gradient(90deg,#74e597,#ffd23f);animation:bootp 2.5s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes bootp{to{width:92%}}
+#boot small{font-size:18px;text-shadow:0 2px 0 rgba(0,0,0,.25)}
 
 </style>
 </head>
 <body>
+<div id="boot"><div class="bl">Beat Buddies</div><div class="bb"><i></i></div><small>Loading the stage…</small></div>
+<script>setTimeout(function(){var l=document.getElementById('boot');if(l)l.style.display='none';},7000);</script>
 <canvas id="cv"></canvas>
 <div id="hud" class="hidden">
  <button class="btn w ib" id="bBack" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -523,7 +532,7 @@ var AU = (function () {
     if (!ctx || !playing || ctx.state !== 'running') return;
     var sd = 60 / A.S.bpm / 4;
     if (nextT < ctx.currentTime - .2) nextT = ctx.currentTime + .05; // recover after stalls
-    while (nextT < ctx.currentTime + .13) {
+    while (nextT < ctx.currentTime + .26) {
       onStep && onStep(step, nextT);
       doStep(A, step, nextT, slots, mute, solo, bonus, onNote);
       scheduled++; step++; nextT += sd;
@@ -566,7 +575,7 @@ var AU = (function () {
     onNote: function (f) { onNote = f; }, onStep: function (f) { onStep = f; },
     now: function () { return ctx ? ctx.currentTime : 0; }, step: function () { return step; }, stepDur: function () { return 60 / STAGES[st].bpm / 4; },
     stats: function () { return { state: ctx ? ctx.state : 'none', t: ctx ? ctx.currentTime : 0, step: step, scheduled: scheduled, playing: playing, latency: ctx ? (ctx.baseLatency || 0) + (ctx.outputLatency || 0) : 0 }; },
-    running: function () { return !!(ctx && ctx.state === 'running' && playing); }
+    pump: tick, running: function () { return !!(ctx && ctx.state === 'running' && playing); }
   };
 })();
 
@@ -643,6 +652,7 @@ var DAILY = [
 // ---------- state ----------
 var G = { scr: 'title', st: SAVE.st, slots: [-1, -1, -1, -1, -1, -1, -1], mute: [0, 0, 0, 0, 0, 0, 0], solo: -1, combos: {}, t: 0, act: [], pend: [], steps: [], parts: [], drag: null, pop: -1, tab: -1, rec: null, pb: null, jamT: 0, jamAcc: 0, flash: 0, comboFx: null, enter: [], kickE: 0, bassE: 0 };
 for (var i = 0; i < 7; i++) { G.act.push({ e: 0, sing: 0, singEnd: 0, n: 0 }); G.enter.push(1); }
+var Q = { dpr: (window.innerWidth < 900 ? 1.5 : 2), acc: 0, n: 0, low: 0 }, BGC = document.createElement('canvas'), BGG = BGC.getContext('2d'), bgT = 0, bgKey = '';
 var LAY = { slots: [], y0: 0, y1: 0, trayH: 0, S: 80, floorY: 0 };
 
 // ---------- helpers ----------
@@ -686,7 +696,7 @@ function drawBuddy(g, x, y, S, bi, o) {
   g.save(); g.fillStyle = 'rgba(0,0,0,' + Math.max(.08, .3 - jump / S * .8) + ')'; g.beginPath(); g.ellipse(x, y + 2, Math.max(1, w * .46 * sc * (1 - jump / S)), Math.max(1, S * .08 * sc), 0, 0, Math.PI * 2); g.fill(); g.restore();
   g.save(); g.translate(x, y - jump); g.rotate(rot); g.scale(sx * sc, sy * sc);
   var col = muted ? '#9a95ad' : b.c;
-  if (hit > .05 && !muted && !o.small) { g.save(); g.globalAlpha = Math.min(1, hit) * .55; g.shadowColor = b.c; g.shadowBlur = S * .4; bodyPath(g, b.sh, w, h); g.fillStyle = b.c; g.fill(); g.restore(); }
+  if (hit > .05 && !muted && !o.small) { g.save(); g.globalAlpha = Math.min(1, hit) * .35; g.translate(0, h * .06); g.scale(1.14, 1.12); bodyPath(g, b.sh, w, h); g.fillStyle = b.c; g.fill(); g.restore(); }
   if (b.a === 'halo') { g.strokeStyle = muted ? '#bbb' : '#ffe27a'; g.lineWidth = S * .05; g.beginPath(); g.ellipse(0, -h * 1.14, w * .26, h * .07, 0, 0, Math.PI * 2); g.stroke(); }
   bodyPath(g, b.sh, w, h);
   var gr = g.createRadialGradient(-w * .22, -h * .78, S * .05, 0, -h * .45, S * .8); gr.addColorStop(0, shade(col, .55)); gr.addColorStop(.45, col); gr.addColorStop(1, shade(col, -.35));
@@ -783,7 +793,7 @@ var SPOT = ['#ff6fd8', '#6fe8ff', '#ffe36b', '#8aff8a'];
 function drawStage(g, t, kick, bass) {
   var S = STG[G.st], fy = LAY.floorY, fh = H - fy, fxOn = SAVE.fx, i;
   g.save(); g.globalCompositeOperation = 'lighter';
-  for (i = 0; i < 4; i++) { var ox = W * (.15 + i * .233), ang = Math.sin(G.bt * Math.PI / 4 + i * 1.7) * .32 + (i < 2 ? .12 : -.12), len = H * 1.05, a = .06 + kick * (fxOn ? .1 : .03), lg = g.createLinearGradient(ox, 0, ox, fy + 40); lg.addColorStop(0, hexA(SPOT[i], a * 2)); lg.addColorStop(1, hexA(SPOT[i], 0)); g.fillStyle = lg; g.save(); g.translate(ox, -10); g.rotate(ang); g.beginPath(); g.moveTo(-8, 0); g.lineTo(8, 0); g.lineTo(len * .22, len); g.lineTo(-len * .22, len); g.fill(); g.restore(); }
+  if (!Q.low) for (i = 0; i < 4; i++) { var ox = W * (.15 + i * .233), ang = Math.sin(G.bt * Math.PI / 4 + i * 1.7) * .32 + (i < 2 ? .12 : -.12), len = H * 1.05, a = .06 + kick * (fxOn ? .1 : .03), lg = g.createLinearGradient(ox, 0, ox, fy + 40); lg.addColorStop(0, hexA(SPOT[i], a * 2)); lg.addColorStop(1, hexA(SPOT[i], 0)); g.fillStyle = lg; g.save(); g.translate(ox, -10); g.rotate(ang); g.beginPath(); g.moveTo(-8, 0); g.lineTo(8, 0); g.lineTo(len * .22, len); g.lineTo(-len * .22, len); g.fill(); g.restore(); }
   g.restore();
   var flg = g.createLinearGradient(0, fy, 0, H); flg.addColorStop(0, S.fl[0]); flg.addColorStop(1, S.fl[1]); g.fillStyle = flg;
   g.beginPath(); g.moveTo(-20, H); g.lineTo(-20, fy + 14); g.quadraticCurveTo(W / 2, fy - 16, W + 20, fy + 14); g.lineTo(W + 20, H); g.fill();
@@ -794,7 +804,7 @@ function drawStage(g, t, kick, bass) {
   riser(g, S, kick);
   g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 3; g.beginPath(); g.moveTo(-20, fy + 14); g.quadraticCurveTo(W / 2, fy - 16, W + 20, fy + 14); g.stroke();
   var nb = Math.max(10, Math.round(W / 34)), sb = G.s16 | 0;
-  for (var j = 0; j < nb; j++) { var bx = (j + .5) * W / nb, by = LAY.y0 - 8 - Math.sin(j / (nb - 1) * Math.PI) * 6, on = ((j + sb) % 4 === 0) && AU.running(); g.fillStyle = on ? S.ac : 'rgba(255,255,255,.35)'; if (on && fxOn) { g.save(); g.shadowColor = S.ac; g.shadowBlur = 12; g.beginPath(); g.arc(bx, by, 4.5, 0, 7); g.fill(); g.restore(); } else { g.beginPath(); g.arc(bx, by, 3.5, 0, 7); g.fill(); } }
+  for (var j = 0; j < nb; j++) { var bx = (j + .5) * W / nb, by = LAY.y0 - 8 - Math.sin(j / (nb - 1) * Math.PI) * 6, on = ((j + sb) % 4 === 0) && AU.running(); g.fillStyle = on ? S.ac : 'rgba(255,255,255,.35)'; if (on && fxOn) { g.globalAlpha = .3; g.beginPath(); g.arc(bx, by, 9, 0, 7); g.fill(); g.globalAlpha = 1; g.beginPath(); g.arc(bx, by, 4.5, 0, 7); g.fill(); } else { g.beginPath(); g.arc(bx, by, 3.5, 0, 7); g.fill(); } }
   if (W > H) { var spS = Math.min(W * .07, (LAY.y1 - LAY.y0) * .3, 64); speaker(g, spS * .62, fy + spS * .2, spS, bass, kick); speaker(g, W - spS * .62, fy + spS * .2, spS, bass, kick); }
 }
 function riser(g, S, kick) {
@@ -812,7 +822,7 @@ function speaker(g, x, y, s, bass, kick) { rr(g, x - s * .5, y - s * 1.5, s, s *
 
 // ---------- layout ----------
 function resize() {
-  DPR = Math.min(window.devicePixelRatio || 1, 2); W = window.innerWidth; H = window.innerHeight; cv.width = W * DPR | 0; cv.height = H * DPR | 0;
+  DPR = Math.min(window.devicePixelRatio || 1, Q.dpr); W = window.innerWidth; H = window.innerHeight; cv.width = W * DPR | 0; cv.height = H * DPR | 0;
   var land = W > H, tray = $('#tray'), pb = $('#pbBar');
   LAY.trayH = G.pb ? (pb.offsetHeight || 70) : (!tray.classList.contains('hidden') && tray.offsetHeight) || (land ? 104 : 146);
   LAY.y0 = land ? 62 : 84; LAY.y1 = H - LAY.trayH; var ah = LAY.y1 - LAY.y0; LAY.slots = [];
@@ -887,7 +897,9 @@ function beatInfo() {
 }
 function frame(ts) {
   requestAnimationFrame(frame);
-  var dt = Math.min(.05, Math.max(0, (ts - lastT) / 1000)); lastT = ts; G.t += dt;
+  var raw = Math.max(0, (ts - lastT) / 1000), dt = Math.min(.05, raw); lastT = ts; G.t += dt;
+  try { AU.pump(); } catch (e) {}
+  if (raw > 0 && raw < .5) { Q.acc += raw; Q.n++; if (Q.n >= 45) { var avg = Q.acc / Q.n; Q.acc = Q.n = 0; if (avg > .03 && Q.dpr > 1) { Q.dpr = Math.max(1, Q.dpr - .5); resize(); } else if (avg > .03) Q.low = 1; } }
   try { tick(dt); render(dt); } catch (e) { if (!frame.err) { frame.err = 1; try { zt('js_error', { msg: String(e && e.message || e).slice(0, 90), where: 'frame' }); } catch (x) {} } }
 }
 function tick(dt) {
@@ -918,7 +930,9 @@ function noteFx(i, v) {
 function render(dt) {
   var g = cx; g.setTransform(DPR, 0, 0, DPR, 0, 0);
   var playing = G.scr === 'play';
-  drawBG(g, W, H, G.st, G.t, G.kickE, SAVE.fx, playing ? LAY.floorY : H * .72);
+  var fyb = playing ? LAY.floorY : H * .72, key = G.st + ':' + W + 'x' + H + ':' + DPR + ':' + (fyb | 0);
+  if (key !== bgKey || G.t - bgT > (Q.low ? .2 : .08)) { bgKey = key; bgT = G.t; if (BGC.width !== cv.width || BGC.height !== cv.height) { BGC.width = cv.width; BGC.height = cv.height; } BGG.setTransform(DPR, 0, 0, DPR, 0, 0); drawBG(BGG, W, H, G.st, G.t, 0, SAVE.fx, fyb); }
+  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(BGC, 0, 0); g.setTransform(DPR, 0, 0, DPR, 0, 0);
   if (playing) {
     drawStage(g, G.t, G.kickE, G.bassE);
     var order = LAY.slots.map(function (s, i) { return i; }).sort(function (a, b) { return LAY.slots[a].y - LAY.slots[b].y; });
@@ -943,7 +957,7 @@ function render(dt) {
   drawParts(g, dt);
   if (G.drag && G.drag.on) { var d = G.drag, S = LAY.S * .95; drawBuddy(g, d.x, d.y + S * .45, S, d.b, { t: G.t, beat: G.beat, bt: G.bt, dance: 0, happy: 1, pop: 1.08 }); }
   if (G.flash > .02 && SAVE.fx) { g.fillStyle = 'rgba(255,255,255,' + G.flash * .3 + ')'; g.fillRect(0, 0, W, H); }
-  if (G.scr === 'scrTitle') drawTitle();
+  if (G.scr === 'scrTitle' && (frame.k = (frame.k || 0) + 1) % 2 === 0) drawTitle();
 }
 function drawTitle() {
   var g = titleG, w = titleCv.width, h = titleCv.height; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h);
@@ -1176,14 +1190,16 @@ document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && G.
 document.addEventListener('visibilitychange', function () { AU.suspend(document.hidden); });
 
 // ---------- boot ----------
+function safe(f) { try { f(); } catch (e) { try { zt('js_error', { msg: String(e && e.message || e).slice(0, 90), where: 'boot' }); } catch (x) {} } }
+function bootDone() { var l = document.getElementById('boot'); if (l) { l.classList.add('done'); setTimeout(function () { l.style.display = 'none'; }, 400); } }
 function boot() {
-  buildTabs(); updNotes(); syncSet(); syncMixBtns(); dailyRoll(); syncDailyDot(); resize(); buildCards();
-  var hm = /#mix=([0-9a-z.~x-]+)/.exec(location.hash || ''); if (hm) { var m = decodeMix(hm[1]); if (m) { G.shared = m; $('#sharedBox').classList.remove('hidden'); zt('select_content', { content_type: 'shared_link', item_id: 'open' }); } }
+  [buildTabs, updNotes, syncSet, syncMixBtns, dailyRoll, syncDailyDot, resize, buildCards].forEach(safe);
+  var hm = null; try { hm = /#mix=([0-9a-z.~x-]+)/.exec(decodeURIComponent(location.hash || '').toLowerCase()); } catch (e) {} if (hm) { var m = decodeMix(hm[1]); if (m) { G.shared = m; $('#sharedBox').classList.remove('hidden'); zt('select_content', { content_type: 'shared_link', item_id: 'open' }); } }
   window.addEventListener('hashchange', function () { var h2 = /#mix=([0-9a-z.~x-]+)/.exec(location.hash || ''), m2 = h2 && decodeMix(h2[1]); if (m2) { G.shared = m2; $('#sharedBox').classList.remove('hidden'); if (G.scr === 'play') leavePlay(); else show('scrTitle'); } });
-  show('scrTitle'); requestAnimationFrame(frame);
+  safe(function () { show('scrTitle'); }); requestAnimationFrame(frame); bootDone();
   window.__bb = { G: G, AU: AU, B: B, COMBOS: COMBOS, place: place, enc: encodeMix, dec: decodeMix, save: function () { return SAVE; }, lay: LAY, enterPlay: enterPlay, recStart: recStart, recStop: recStop, openPop: openPop };
 }
-boot();
+try { boot(); } catch (e) { bootDone(); try { zt('js_error', { msg: String(e && e.message || e).slice(0, 90), where: 'boot' }); } catch (x) {} }
 })();
 
 
