@@ -77,7 +77,7 @@ body:not(.ads-on) .adslot{display:none!important}
 #hud{position:fixed;left:0;right:0;top:0;z-index:12;display:flex;align-items:center;gap:7px;padding:calc(env(safe-area-inset-top,0px) + 8px) calc(env(safe-area-inset-right,0px) + 10px) 0 calc(env(safe-area-inset-left,0px) + 10px);pointer-events:none}
 #hud>*{pointer-events:auto}#hud .grow{flex:1;pointer-events:none}
 #stName{color:#fff;font-size:18px;text-shadow:0 2px 0 rgba(0,0,0,.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;pointer-events:none}
-@media (max-width:420px){#stName{display:none}}
+
 .pill.note{font-size:18px;padding:3px 12px 5px}
 .nt{display:inline-block;width:18px;height:20px;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 22'%3E%3Cpath d='M7 3l11-2v13' stroke='%23ffd23f' stroke-width='3' fill='none' stroke-linejoin='round'/%3E%3Cellipse cx='5' cy='17' rx='4.5' ry='3.6' fill='%23ffd23f'/%3E%3Cellipse cx='15' cy='15' rx='4.5' ry='3.6' fill='%23ffd23f'/%3E%3Cpath d='M7 3v14' stroke='%23ffd23f' stroke-width='3'/%3E%3C/svg%3E")}
 #recPill{position:fixed;top:calc(env(safe-area-inset-top,0px) + 62px);left:50%;transform:translateX(-50%);z-index:12;background:rgba(200,20,50,.9);color:#fff;border-radius:999px;padding:3px 14px 5px;font-size:17px;display:flex;align-items:center;gap:7px;pointer-events:none;box-shadow:0 3px 0 rgba(0,0,0,.2)}
@@ -169,6 +169,13 @@ body:not(.ads-on) .adslot{display:none!important}
 #boot .bb i{display:block;height:100%;width:0;border-radius:10px;background:linear-gradient(90deg,#74e597,#ffd23f);animation:bootp 2.5s cubic-bezier(.2,.8,.3,1) forwards}
 @keyframes bootp{to{width:92%}}
 #boot small{font-size:18px;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+
+/* QA 10-15 */
+#tray,#cards,.card,.card canvas,#cv{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none}
+#cards,.card{touch-action:none}
+#cards{scroll-snap-type:none}
+#stName{flex:0 1 auto;background:rgba(30,15,70,.55);border:2px solid rgba(255,255,255,.25);border-radius:999px;padding:2px 12px 4px;font-size:16px;margin-left:2px}
+@media (orientation:portrait),(max-width:560px){#stName{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 60px);max-width:70vw;margin:0}body.bbrec #stName{visibility:hidden}}
 
 </style>
 </head>
@@ -657,7 +664,7 @@ var LAY = { slots: [], y0: 0, y1: 0, trayH: 0, S: 80, floorY: 0 };
 
 // ---------- helpers ----------
 function show(id) { $$('.screen').forEach(function (s) { s.classList.toggle('hidden', s.id !== id); }); G.scr = id || 'play'; if (id) closePop(); }
-var toastT = 0; function toast(m, ms) { var t = $('#toast'); t.innerHTML = m; if (G.scr === 'play') { t.style.top = 'auto'; t.style.bottom = (LAY.trayH + 14) + 'px'; } else { t.style.top = ''; t.style.bottom = ''; } t.classList.remove('hidden'); t.style.animation = 'none'; void t.offsetWidth; t.style.animation = ''; clearTimeout(toastT); toastT = setTimeout(function () { t.classList.add('hidden'); }, ms || 2200); }
+var toastT = 0; function toast(m, ms) { var t = $('#toast'); t.innerHTML = m; if (G.scr === 'play') { t.style.bottom = 'auto'; t.style.top = (LAY.y0 + (G.rec ? 40 : 4)) + 'px'; } else { t.style.top = ''; t.style.bottom = ''; } t.classList.remove('hidden'); t.style.animation = 'none'; void t.offsetWidth; t.style.animation = ''; clearTimeout(toastT); toastT = setTimeout(function () { t.classList.add('hidden'); }, ms || 2200); }
 function updNotes() { $$('.nval').forEach(function (e) { e.textContent = SAVE.notes; }); }
 function addNotes(n, why) { SAVE.notes += n; save(); updNotes(); zt('earn_virtual_currency', { virtual_currency_name: 'notes', value: n, reason: why }); }
 function hexA(h, a) { var n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
@@ -825,9 +832,14 @@ function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, Q.dpr); W = window.innerWidth; H = window.innerHeight; cv.width = W * DPR | 0; cv.height = H * DPR | 0;
   var land = W > H, tray = $('#tray'), pb = $('#pbBar');
   LAY.trayH = G.pb ? (pb.offsetHeight || 70) : (!tray.classList.contains('hidden') && tray.offsetHeight) || (land ? 104 : 146);
-  LAY.y0 = land ? 62 : 84; LAY.y1 = H - LAY.trayH; var ah = LAY.y1 - LAY.y0; LAY.slots = [];
-  if (land) { var S = Math.min(W / 9.8, ah * .5), gap = Math.min(W * .118, S * 1.22), ys = LAY.y1 - Math.max(12, ah * .08); LAY.S = S; for (var i = 0; i < 7; i++) LAY.slots.push({ x: W / 2 + (i - 3) * gap, y: ys - (i % 2) * S * .1, s: S }); LAY.floorY = ys - S * .62; }
-  else { var S2 = Math.min(W / 4.6, ah * .3); LAY.S = S2; var yb = LAY.y0 + ah * .5, yf = LAY.y1 - Math.max(12, ah * .07); [.14, .38, .62, .86].forEach(function (f) { LAY.slots.push({ x: W * f, y: yb, s: S2 * .88 }); }); [.25, .5, .75].forEach(function (f) { LAY.slots.push({ x: W * f, y: yf, s: S2 }); }); LAY.floorY = yb - S2 * .5; }
+  LAY.y0 = land ? 62 : 96; LAY.y1 = H - LAY.trayH; var ah = LAY.y1 - LAY.y0; LAY.slots = [];
+  var big = land && W >= 1000 && H >= 600; // desktop: bigger buddies, stage lifted toward the middle
+  if (land) { var S = big ? Math.min(W / 8, ah * .36, 190) : Math.min(W / 9.8, ah * .5), gap = Math.min(big ? W * .125 : W * .118, S * 1.22), ys = big ? LAY.y0 + ah * .7 : LAY.y1 - Math.max(12, ah * .08); LAY.S = S; for (var i = 0; i < 7; i++) LAY.slots.push({ x: W / 2 + (i - 3) * gap, y: ys - (i % 2) * S * .1, s: S }); LAY.floorY = ys - S * .62; }
+  else { var S2 = Math.min(W / 4.6, ah * .3); LAY.S = S2; var yb = LAY.y0 + ah * .5, yf = LAY.y1 - Math.max(12, ah * .07);
+    // keep the outer buddies (and their dance bounce) clear of the screen edges
+    var sb = S2 * .88, pad = sb * .62 + 18, x0 = Math.max(W * .14, pad), x1 = Math.min(W * .86, W - pad);
+    for (var bi2 = 0; bi2 < 4; bi2++) LAY.slots.push({ x: x0 + (x1 - x0) * bi2 / 3, y: yb, s: sb });
+    [.25, .5, .75].forEach(function (f) { LAY.slots.push({ x: W * f, y: yf, s: S2 }); }); LAY.floorY = yb - S2 * .5; }
   $('#hint').style.top = (LAY.y0 + ah * .08) + 'px';
 }
 window.addEventListener('resize', resize);
@@ -1004,16 +1016,18 @@ function syncTabs() { $$('#tabs button').forEach(function (b) { b.classList.togg
 function buildCards() {
   var box = $('#cards'), list = []; B.forEach(function (b, i) { if (G.tab < 0 || b.k === G.tab) list.push(i); });
   list.sort(function (a, b) { return (own(b) - own(a)) || (B[a].k - B[b].k) || (a - b); });
-  var key = G.tab + ':' + SAVE.own.join(',') + ':' + G.slots.join(',') + ':' + SAVE.placed.length; if (box._k === key) return; box._k = key;
+  var key = G.tab + ':' + SAVE.own.join(','); if (box._k === key && box.children.length) { syncCards(); return; } box._k = key;
   var sc = box.scrollLeft; box.innerHTML = '';
   list.forEach(function (i) {
     var b = B[i], d = document.createElement('div'), o = own(i); d.className = 'card' + (o ? '' : ' lock') + (G.slots.indexOf(i) >= 0 ? ' used' : '') + (o && SAVE.placed.indexOf(i) < 0 && b.p ? ' new' : ''); d.dataset.b = i; d.style.setProperty('--c', CATS[b.k].c);
     var c = document.createElement('canvas'); c.width = c.height = 132; d.appendChild(c); var s = document.createElement('span'); s.textContent = b.n; d.appendChild(s);
     if (!o) { var lk = document.createElement('div'); lk.className = 'lk'; lk.innerHTML = '<i class="nt"></i>' + b.p; d.appendChild(lk); }
+    c.setAttribute('draggable', 'false'); d.setAttribute('draggable', 'false');
     box.appendChild(d); portrait(c, i, { S: .72 });
   });
   box.scrollLeft = sc;
 }
+function syncCards() { $$('#cards .card').forEach(function (d) { var i = +d.dataset.b, b = B[i], o = own(i); d.classList.toggle('used', G.slots.indexOf(i) >= 0); d.classList.toggle('new', !!(o && SAVE.placed.indexOf(i) < 0 && b.p)); }); }
 $('#tabs').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; G.tab = +b.dataset.tab; syncTabs(); buildCards(); AU.sfx('tap'); $('#cards').scrollLeft = 0; });
 function tryUnlock(i) {
   var b = B[i]; if (own(i)) return true;
@@ -1021,7 +1035,10 @@ function tryUnlock(i) {
   AU.sfx('no'); toast('<b>' + b.n + '</b> needs ' + b.p + ' notes. You have ' + SAVE.notes + '.<br>Keep jamming and do Daily Fun to earn more!', 2800); return false;
 }
 var PT = null;
-$('#cards').addEventListener('pointerdown', function (e) { var c = e.target.closest('.card'); if (!c) return; AU.init(); AU.start(); PT = { id: e.pointerId, b: +c.dataset.b, x0: e.clientX, y0: e.clientY, t0: performance.now(), src: 'tray' }; });
+$('#cards').addEventListener('pointerdown', function (e) { var c = e.target.closest('.card'); if (!c) return; AU.init(); AU.start(); PT = { id: e.pointerId, b: +c.dataset.b, x0: e.clientX, y0: e.clientY, t0: performance.now(), src: 'tray', sx: null, lx: e.clientX, ly: e.clientY, sl0: $('#cards').scrollLeft }; if (e.pointerType !== 'mouse') { try { $('#cards').setPointerCapture(e.pointerId); } catch (x) {} } });
+$('#cards').addEventListener('contextmenu', function (e) { e.preventDefault(); });
+$('#tray').addEventListener('contextmenu', function (e) { e.preventDefault(); });
+document.addEventListener('dragstart', function (e) { if (e.target.closest && e.target.closest('#tray,#cv')) e.preventDefault(); });
 cv.addEventListener('pointerdown', function (e) {
   if (G.scr !== 'play' || G.pb) return; AU.init(); AU.start(); var wasPop = G.pop >= 0; closePop();
   var hit = slotAt(e.clientX, e.clientY, true); if (hit >= 0 && G.slots[hit] >= 0) { PT = { id: e.pointerId, b: G.slots[hit], x0: e.clientX, y0: e.clientY, t0: performance.now(), src: 'stage', from: hit, wasPop: wasPop }; try { cv.setPointerCapture(e.pointerId); } catch (x) {} }
@@ -1029,7 +1046,19 @@ cv.addEventListener('pointerdown', function (e) {
 window.addEventListener('pointermove', function (e) {
   if (!PT || e.pointerId !== PT.id) return; var dx = e.clientX - PT.x0, dy = e.clientY - PT.y0;
   if (!G.drag) {
-    if (PT.src === 'tray' ? (dy < -12 && Math.abs(dy) > Math.abs(dx) * .7) : (dx * dx + dy * dy > 140)) {
+    if (PT.src === 'tray') {
+      // upward (even fast and diagonal) = pick up the buddy; sideways = scroll the tray
+      var upD = PT.sx == null ? dy : e.clientY - PT.ly0;
+      var land = W > H, trayTop = H - LAY.trayH;
+      var goUp = (PT.sx == null ? (dy < -8 && -dy >= Math.abs(dx) * (land ? .22 : .4)) : (upD < -26 && -upD >= Math.abs(e.clientX - PT.lx0) * .6)) || e.clientY < trayTop - 6;
+      if (goUp && PT.sx != null) $('#cards').scrollLeft = PT.sl0; // it was a pick-up after all: put the tray back
+      if (!goUp) {
+        if (PT.sx == null && Math.abs(dx) > 8) { PT.sx = 1; PT.lx0 = e.clientX; PT.ly0 = e.clientY; }
+        if (PT.sx != null) $('#cards').scrollLeft = PT.sl0 - dx;
+        PT.lx = e.clientX; PT.ly = e.clientY; return;
+      }
+    }
+    if (PT.src === 'tray' || (dx * dx + dy * dy > 140)) {
       if (PT.src === 'tray' && !own(PT.b)) { tryUnlock(PT.b); PT = null; return; }
       G.drag = { on: 1, b: PT.b, x: e.clientX, y: e.clientY, from: PT.src === 'stage' ? PT.from : -1, over: -1 }; AU.sfx('pick');
     } else return;
@@ -1056,9 +1085,9 @@ function slotAt(x, y, body) { var best = -1, bd = 1e9; LAY.slots.forEach(functio
 // ---------- recording / playback / share ----------
 var B36 = '0123456789abcdefghijklmnopqrstuvwxyz';
 function recEv(a, i, b) { if (!G.rec) return; G.rec.ev.push({ s: Math.max(0, AU.step() - G.rec.s0), a: a, i: i, b: b }); }
-function recStart() { AU.init(); AU.start(); closePop(); G.rec = { s0: AU.step(), st: G.st, init: G.slots.slice(), mute: G.mute.slice(), solo: G.solo, ev: [] }; $('#bRec').classList.add('on'); $('#recPill').classList.remove('hidden'); AU.sfx('rec'); toast('Recording! Make your song, then tap the red button again to stop.', 2600); zt('select_content', { content_type: 'record', item_id: 'start' }); }
+function recStart() { AU.init(); AU.start(); closePop(); G.rec = { s0: AU.step(), st: G.st, init: G.slots.slice(), mute: G.mute.slice(), solo: G.solo, ev: [] }; syncMixBtns(); $('#recPill').classList.remove('hidden'); AU.sfx('rec'); toast('Recording! Make your song, then tap the red button again to stop.', 2600); zt('select_content', { content_type: 'record', item_id: 'start' }); }
 function recStop() {
-  var r = G.rec; if (!r) return; G.rec = null; $('#bRec').classList.remove('on'); $('#recPill').classList.add('hidden');
+  var r = G.rec; if (!r) return; G.rec = null; syncMixBtns(); $('#recPill').classList.add('hidden');
   var len = Math.max(16, AU.step() - r.s0); r.len = len; var sec = len * AU.stepDur();
   if (sec < 2) { toast('That was super short! Try recording a bit longer.'); return; }
   SAVE.mix = encodeMix(r); save(); syncMixBtns(); toast('Song saved! Tap <b>play</b> to hear it or <b>share</b> to send it.', 2600); AU.sfx('unlock');
@@ -1080,13 +1109,14 @@ function decodeMix(s) {
     return { st: st, init: init, mute: mute, solo: solo, len: len, ev: ev };
   } catch (e) { return null; }
 }
-function syncMixBtns() { var m = !!SAVE.mix; $('#bPlayRec').disabled = !m; $('#bShare').disabled = !m; }
+function syncMixBtns() { var m = !!SAVE.mix; $('#bPlayRec').disabled = !m || !!G.rec || !!G.pb; $('#bShare').disabled = !m; $('#bRec').disabled = !!G.pb; $('#bRec').classList.toggle('on', !!G.rec); $('#bClear').disabled = !!G.pb; document.body.classList.toggle('bbrec', !!G.rec); }
 function pbStart(m, title) {
   if (!m) return; if (G.rec) recStop(); closePop();
-  G.pb = { m: m, i: 0, s0: -1, len: m.len }; enterPlay(m.st, true);
+  var keep = G.pbKeep || { st: G.st, slots: G.slots.slice(), mute: G.mute.slice(), solo: G.solo }; G.pbKeep = null;
+  G.pb = { m: m, i: 0, s0: -1, len: m.len, keep: keep }; enterPlay(m.st, true);
   G.slots = m.init.slice(); G.mute = m.mute.slice(); G.solo = m.solo; for (var i = 0; i < 7; i++) G.enter[i] = 0; G.combos = {}; checkCombos();
   $('#tray').classList.add('hidden'); $('#pbBar').classList.remove('hidden'); $('#pbTitle').textContent = title || 'Playing your song'; $('#hint').classList.add('hidden'); $('#pbProg i').style.width = '0';
-  $('#bRec').disabled = true; $('#bClear').disabled = true; resize();
+  syncMixBtns(); resize();
   AU.stop(); AU.start(); G.pb.s0 = AU.step();
   zt('select_content', { content_type: 'mix_playback', item_id: title ? 'shared' : 'own' });
 }
@@ -1101,9 +1131,17 @@ function applyEv(e) {
   else if (e.a === 'm') G.mute[e.i] = e.b ? 1 : 0; else if (e.a === 'o') G.solo = e.b ? e.i : -1;
   checkCombos();
 }
-function pbEnd(done) { if (!G.pb) return; G.pb = null; $('#pbBar').classList.add('hidden'); $('#tray').classList.remove('hidden'); $('#bRec').disabled = false; $('#bClear').disabled = false; resize(); if (done) toast('The end! Tap <b>play</b> to hear it again, or keep jamming.', 2600); buildCards(); SAVE.last = G.slots.slice(); save(); }
+function pbEnd(done, remix, quiet) {
+  var pb = G.pb; if (!pb) return; G.pb = null; pb.s0 = -1; $('#pbBar').classList.add('hidden'); $('#tray').classList.remove('hidden');
+  // Stop / the end: your own stage comes back exactly as it was. Remix: keep the song's buddies to change them.
+  if (!remix && pb.keep) { var k = pb.keep; if (k.st !== G.st && SAVE.stOwn.indexOf(k.st) >= 0) { G.st = k.st; SAVE.st = G.st; AU.setStage(G.st); $('#stName').textContent = STG[G.st].n; } G.slots = k.slots.slice(); G.mute = k.mute.slice(); G.solo = k.solo; for (var i = 0; i < 7; i++) G.enter[i] = 0; G.combos = {}; checkCombos(); }
+  syncMixBtns(); resize(); buildCards(); SAVE.last = G.slots.slice(); save();
+  if (done) toast('The end! Tap <b>play</b> to hear it again, or keep jamming.', 2600);
+  else if (!remix && !quiet && G.scr === 'play') toast('Stopped. Your buddies are back on stage!', 2000);
+}
 $('#bPbStop').addEventListener('click', function () { pbEnd(false); });
-$('#bPbRemix').addEventListener('click', function () { pbEnd(false); toast('Your turn! Change anything you like.'); });
+$('#bPbStop').addEventListener('pointerdown', function () { if (G.pb) G.pb.s0 = -1; });
+$('#bPbRemix').addEventListener('click', function () { pbEnd(false, true); toast('Your turn! Change anything you like.'); });
 function shareUrl() { return location.origin + location.pathname + '#mix=' + SAVE.mix; }
 
 // ---------- daily challenges ----------
@@ -1160,7 +1198,7 @@ function enterPlay(si, forPb) {
   if (!SAVE.tut && !forPb) { $('#hint').classList.remove('hidden'); zt('tutorial_begin'); }
 }
 function leavePlay() {
-  if (G.rec) recStop(); if (G.pb) pbEnd(false); closePop(); AU.stop(); ztPlay(false);
+  if (G.rec) recStop(); if (G.pb) pbEnd(false, false, true); closePop(); AU.stop(); ztPlay(false);
   zt('level_end', { level: G.st + 1, level_name: STG[G.st].n, success: true, duration: Math.round(G.jamT) });
   $('#hud').classList.add('hidden'); $('#tray').classList.add('hidden'); $('#hint').classList.add('hidden'); $('#recPill').classList.add('hidden'); show('scrTitle'); updNotes(); syncDailyDot();
 }
@@ -1176,7 +1214,7 @@ document.addEventListener('click', function (e) {
     case 'bDailyGo': enterPlay(G.st); break;
     case 'bRec': if (G.pb) return; if (G.rec) recStop(); else recStart(); break;
     case 'bPlayRec': var m = decodeMix(SAVE.mix); if (m) { if (SAVE.stOwn.indexOf(m.st) < 0) m.st = 0; pbStart(m); } break;
-    case 'bShare': if (!SAVE.mix) return; if (G.rec) recStop(); $('#shareUrl').value = shareUrl(); if (G.pb) pbEnd(false); AU.stop(); closePop(); $('#hud').classList.add('hidden'); $('#tray').classList.add('hidden'); $('#recPill').classList.add('hidden'); show('scrShare'); dailyHit('share'); zt('share', { method: 'link_view', content_type: 'mix', item_id: 'mix' }); break;
+    case 'bShare': if (!SAVE.mix) return; if (G.rec) recStop(); $('#shareUrl').value = shareUrl(); if (G.pb) pbEnd(false, false, true); AU.stop(); closePop(); $('#hud').classList.add('hidden'); $('#tray').classList.add('hidden'); $('#recPill').classList.add('hidden'); show('scrShare'); dailyHit('share'); zt('share', { method: 'link_view', content_type: 'mix', item_id: 'mix' }); break;
     case 'bShareBack': enterPlay(G.st, true); break;
     case 'bCopy': copyLink(); break;
     case 'bNative': if (navigator.share) { navigator.share({ title: 'My Beat Buddies song', text: 'Listen to the song I made in Beat Buddies!', url: shareUrl() }).then(function () { zt('share', { method: 'native', content_type: 'mix', item_id: 'mix' }); }).catch(function () {}); } else copyLink(); break;
