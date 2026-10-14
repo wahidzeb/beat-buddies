@@ -1036,6 +1036,7 @@ function tryUnlock(i) {
 }
 var PT = null;
 $('#cards').addEventListener('pointerdown', function (e) { var c = e.target.closest('.card'); if (!c) return; AU.init(); AU.start(); PT = { id: e.pointerId, b: +c.dataset.b, x0: e.clientX, y0: e.clientY, t0: performance.now(), src: 'tray', sx: null, lx: e.clientX, ly: e.clientY, sl0: $('#cards').scrollLeft }; if (e.pointerType !== 'mouse') { try { $('#cards').setPointerCapture(e.pointerId); } catch (x) {} } });
+document.addEventListener('contextmenu', function (e) { e.preventDefault(); }); // covers stage #cv and everything else
 $('#cards').addEventListener('contextmenu', function (e) { e.preventDefault(); });
 $('#tray').addEventListener('contextmenu', function (e) { e.preventDefault(); });
 document.addEventListener('dragstart', function (e) { if (e.target.closest && e.target.closest('#tray,#cv')) e.preventDefault(); });
